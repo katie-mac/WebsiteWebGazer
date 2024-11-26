@@ -1,6 +1,9 @@
 <!-- Load WebGazer.js Script -->
 <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
 
+<div id="webgazerVideoFeed" style="position: absolute; z-index: 1;"></div> <!-- Video Feed for WebGazer -->
+<div id="gazeDot" style="position: absolute; z-index: 9999; width: 10px; height: 10px; background-color: red; border-radius: 50%; pointer-events: none; display: none;"></div> <!-- Gaze Dot -->
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     window.onload = function () {
@@ -19,6 +22,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 .setGazeListener((data, clock) => {
                     if (data) {
                         console.log(`Gaze data: X=${data.x}, Y=${data.y}, Time=${clock}`);
+                        
+                        const dot = document.getElementById('gazeDot');
+                        if (dot && data.x && data.y) {
+                            // Update dot position if data is valid
+                            if (data.x > 0 && data.y > 0 && data.x < window.innerWidth && data.y < window.innerHeight) {
+                                dot.style.left = `${data.x - dot.offsetWidth / 2}px`;
+                                dot.style.top = `${data.y - dot.offsetHeight / 2}px`;
+                                dot.style.display = 'block';  // Ensure the dot is visible
+                            }
+                        }
                     } else {
                         console.log("No gaze data yet.");
                     }
@@ -54,6 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 video.width = 320;
                 video.height = 240;
                 video.style.margin = '0px';
+                video.style.zIndex = 1;  // Video feed below the gaze dot
                 console.log("Video feed configured successfully.");
 
                 // Check if video already has a stream, avoid requesting it twice
