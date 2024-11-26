@@ -1,45 +1,113 @@
+<!-- Load WebGazer.js Script -->
 <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
 
-<div id="gazeDot" style="position: absolute; width: 10px; height: 10px; background-color: red; border-radius: 50%; pointer-events: none; display: none;"></div>
-
 <script>
-  window.onload = async function() {
-    alert('Please enable webcam permissions to start eye tracking.');
-  
-    await webgazer.setGazeListener(function(data, elapsedTime) {
-      if (data) {
-        const x = data.x; // x-coordinate of gaze
-        const y = data.y; // y-coordinate of gaze
-        const dot = document.getElementById('gazeDot');
-        console.log('Coordinates: ', x, y);
+document.addEventListener("DOMContentLoaded", () => {
+    window.onload = function () {
+        alert('Please enable webcam permissions to start eye tracking.');
+        console.log("Initializing WebGazer...");
 
-        // Update dot position
-        if (x > 0 && y > 0 && x < window.innerWidth && y < window.innerHeight) {
-          dot.style.left = (x - dot.offsetWidth / 2) + 'px';
-          dot.style.top = (y - dot.offsetHeight / 2) + 'px';
-          dot.style.display = 'block';
-        }
-      }
-    }).begin();
+        // Ensure WebGazer script is fully loaded before proceeding
+        const script = document.createElement("script");
+        script.src = "https://webgazer.cs.brown.edu/webgazer.js";
+        script.onload = function () {
+            console.log("WebGazer script loaded, initializing...");
 
-    // Set up WebGazer properties
-    webgazer.setRegression('ridge')
-            .setTracker('TFFacemesh') // TFFacemesh or clmtrackr
-            .showVideoPreview(true) 
-            .showFaceOverlay(true) 
-            .showFaceFeedbackBox(true); // Feedback box
+            // Initialize WebGazer
+            webgazer.setRegression('ridge')
+                .setTracker('TFFacemesh') // Using TensorFlow Facemesh tracker
+                .setGazeListener((data, clock) => {
+                    if (data) {
+                        console.log(`Gaze data: X=${data.x}, Y=${data.y}, Time=${clock}`);
+                    } else {
+                        console.log("No gaze data yet.");
+                    }
+                })
+                .begin();
 
-    webgazer.params.showVideoPreview = true;
-  };
+            // Ensure WebGazer is ready
+            const checkIfReady = function () {
+                if (webgazer.isReady()) {
+                    console.log("WebGazer is ready! Setting up...");
+                    setupWebcamFeed();  // Start video stream
+                    startFaceMeshTracking(); // Begin face mesh tracking once ready
+                } else {
+                    console.log("WebGazer is not ready yet. Retrying...");
+                    setTimeout(checkIfReady, 100);
+                }
+            };
+            checkIfReady();
+        };
+        document.head.appendChild(script);
 
-  // Verify tracking is active
-  function checkWebGazerSetup() {
-    if (!webgazer.isReady()) {
-      console.log('WebGazer is not ready yet. Please wait...');
-    } else {
-      console.log('WebGazer is tracking.');
-    }
-  }
+        // Setup webcam feed visibility and handle the video stream
+        const setupWebcamFeed = function () {
+            const video = document.getElementById('webgazerVideoFeed');
+            if (video) {
+                console.log("Video feed element found. Configuring...");
 
-  setTimeout(checkWebGazerSetup, 3000); // Check status
+                // Ensure video element is properly displayed
+                video.style.display = 'block'; // Show the video feed
+                video.style.position = 'absolute';
+                video.style.top = '0px';
+                video.style.left = '0px';
+                video.width = 320;
+                video.height = 240;
+                video.style.margin = '0px';
+                console.log("Video feed configured successfully.");
+
+                // Check if video already has a stream, avoid requesting it twice
+                if (!video.srcObject) {
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then((stream) => {
+                            video.srcObject = stream;  // Attach webcam stream to video element
+                            console.log("Webcam stream successfully started.");
+                            
+                            // Attach the webcam stream to WebGazer
+                            webgazer.setVideoElement(video);
+                            console.log("Video stream set for WebGazer.");
+                        })
+                        .catch((error) => {
+                            console.error("Error accessing webcam stream:", error);
+                        });
+                } else {
+                    console.log("Video feed already has a stream.");
+                }
+            } else {
+                console.error("Video feed element not found.");
+            }
+        };
+
+        // Start face mesh tracking with continuous updates
+        const startFaceMeshTracking = function () {
+            const trackFaceMesh = function () {
+                if (webgazer.isReady()) {
+                    // Continuously update face mesh and gaze data
+                    webgazer.update();
+                    requestAnimationFrame(trackFaceMesh); // Ensure continuous tracking
+                } else {
+                    console.log("WebGazer is not ready for face mesh tracking.");
+                }
+            };
+
+            // Start continuous tracking
+            trackFaceMesh();
+        };
+
+        // Clean up on page unload
+        window.onbeforeunload = function () {
+            console.log("Ending WebGazer...");
+            webgazer.end();
+        };
+
+        // Check if WebGazer can access the stream after loading
+        setTimeout(() => {
+            if (webgazer.isReady() && webgazer.getVideoElement()) {
+                console.log("WebGazer is ready and has a video element.");
+            } else {
+                console.error("WebGazer is not ready, or no video element found.");
+            }
+        }, 3000); // Check 3 seconds after page load
+    };
+});
 </script>
