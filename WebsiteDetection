@@ -1,0 +1,45 @@
+<script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+
+<div id="gazeDot" style="position: absolute; width: 10px; height: 10px; background-color: red; border-radius: 50%; pointer-events: none; display: none;"></div>
+
+<script>
+  window.onload = async function() {
+    alert('Please enable webcam permissions to start eye tracking.');
+  
+    await webgazer.setGazeListener(function(data, elapsedTime) {
+      if (data) {
+        const x = data.x; // x-coordinate of gaze
+        const y = data.y; // y-coordinate of gaze
+        const dot = document.getElementById('gazeDot');
+        console.log('Coordinates: ', x, y);
+
+        // Update dot position
+        if (x > 0 && y > 0 && x < window.innerWidth && y < window.innerHeight) {
+          dot.style.left = (x - dot.offsetWidth / 2) + 'px';
+          dot.style.top = (y - dot.offsetHeight / 2) + 'px';
+          dot.style.display = 'block';
+        }
+      }
+    }).begin();
+
+    // Set up WebGazer properties
+    webgazer.setRegression('ridge')
+            .setTracker('TFFacemesh') // TFFacemesh or clmtrackr
+            .showVideoPreview(true) 
+            .showFaceOverlay(true) 
+            .showFaceFeedbackBox(true); // Feedback box
+
+    webgazer.params.showVideoPreview = true;
+  };
+
+  // Verify tracking is active
+  function checkWebGazerSetup() {
+    if (!webgazer.isReady()) {
+      console.log('WebGazer is not ready yet. Please wait...');
+    } else {
+      console.log('WebGazer is tracking.');
+    }
+  }
+
+  setTimeout(checkWebGazerSetup, 3000); // Check status
+</script>
